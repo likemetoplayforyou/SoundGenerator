@@ -9,23 +9,57 @@ uses
   Vcl.ExtCtrls;
 
 type
+  TSoundInfo = class(TObject)
+  private
+    FMute: boolean;
+    FFrequency: double;
+  public
+    property Mute: boolean read FMute write FMute;
+    property Frequency: double read FFrequency write FFrequency;
+  end;
+
+
   TfrmMain = class(TForm)
     btnStart: TButton;
     btnStop: TButton;
-    PaintBox1: TPaintBox;
+    pbSoundKeys: TPaintBox;
+    Label1: TLabel;
+    GroupBox1: TGroupBox;
+    lblTonesPerOctave: TLabel;
+    edTonesPerOctave: TSpinEdit;
+    lblGeneratorType: TLabel;
+    cbGeneratorType: TComboBox;
     lblOrigFreq: TLabel;
     edOrigFreq: TEdit;
-    cbGeneratorType: TComboBox;
-    lblGeneratorType: TLabel;
     lblObertonCount: TLabel;
     edObertonCount: TSpinEdit;
+    btnApplySettings: TButton;
+    cbKeyBordStyle: TCheckBox;
     procedure FormDestroy(Sender: TObject);
     procedure btnStartClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure pbSoundKeysPaint(Sender: TObject);
+    procedure edTonesPerOctaveExit(Sender: TObject);
+    procedure pbSoundKeysMouseDown(
+      Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure btnApplySettingsClick(Sender: TObject);
+    procedure pbSoundKeysMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure pbSoundKeysMouseMove(
+      Sender: TObject; Shift: TShiftState; X, Y: Integer);
   private
+    FSoundInfo: TSoundInfo;
+    FTonesPerOctave: integer;
+    FEthalonFreq: double;
+    FObertonCount: integer;
     FPlaySoundThread: TThread;
     FIsPlaying: boolean;
+
+    procedure ApplySettings;
+    function CalcFrequency(AKeyIndex: integer): double;
+    procedure StartPlayKey(AKeyIndex: integer);
+    procedure ChangeKey(AKeyIndex: integer);
   public
     { Public declarations }
   end;
@@ -44,6 +78,8 @@ uses
 const
   BLOCK_SIZE = 1024 * 32;
   BUFFER_COUNT = 2;
+
+  FORMAT_SETTINGS: TFormatSettings = (DecimalSeparator: '.');
 
 
 type
@@ -76,11 +112,11 @@ type
   TPlaySoundThread = class(TThread)
   private
     FWaveGeneratorClass: TWaveGeneratorClass;
-    FOrigFreq: double;
+    FSoundInfo: TSoundInfo;
     FObertonCount: integer;
   public
     constructor Create(
-      AWaveGeneratorClass: TWaveGeneratorClass; AOrigFreq: double;
+      AWaveGeneratorClass: TWaveGeneratorClass; ASoundInfo: TSoundInfo;
       AObertonCount: integer);
 
     procedure Execute; override;
@@ -109,28 +145,72 @@ type
   end;
 
 
-procedure TfrmMain.btnStartClick(Sender: TObject);
-const
-  FORMAT_SETTINGS: TFormatSettings = (DecimalSeparator: '.');
-var
-  waveGenCls: TWaveGeneratorClass;
+procedure TfrmMain.ApplySettings;
 begin
-  if FIsPlaying or (cbGeneratorType.ItemIndex < 0) then
+  if cbGeneratorType.ItemIndex < 0 then
     Exit;
 
-  FIsPlaying := true;
-  waveGenCls := WaveGenerators[cbGeneratorType.ItemIndex];
+  if FPlaySoundThread <> nil then
+    FPlaySoundThread.Terminate;
+  FTonesPerOctave := edTonesPerOctave.Value;
+  FEthalonFreq := StrToFloat(edOrigFreq.Text, FORMAT_SETTINGS);
+  FObertonCount := edObertonCount.Value;
+
+  pbSoundKeys.Refresh;
+
   FPlaySoundThread :=
     TPlaySoundThread.Create(
-      waveGenCls, StrToFloatDef(edOrigFreq.Text, 1, FORMAT_SETTINGS),
-      edObertonCount.Value);
+      WaveGenerators[cbGeneratorType.ItemIndex], FSoundInfo, FObertonCount);
+end;
+
+
+procedure TfrmMain.btnApplySettingsClick(Sender: TObject);
+begin
+  ApplySettings;
+end;
+
+
+procedure TfrmMain.btnStartClick(Sender: TObject);
+//var
+//  waveGenCls: TWaveGeneratorClass;
+begin
+//  if FIsPlaying or (cbGeneratorType.ItemIndex < 0) then
+//    Exit;
+//
+//  FIsPlaying := true;
+//  waveGenCls := WaveGenerators[cbGeneratorType.ItemIndex];
+//  FPlaySoundThread :=
+//    TPlaySoundThread.Create(
+//      waveGenCls, StrToFloatDef(edOrigFreq.Text, 1, FORMAT_SETTINGS),
+//      edObertonCount.Value);
 end;
 
 
 procedure TfrmMain.btnStopClick(Sender: TObject);
 begin
-  FPlaySoundThread.Terminate;
-  FIsPlaying := false;
+//  FPlaySoundThread.Terminate;
+//  FIsPlaying := false;
+end;
+
+
+function TfrmMain.CalcFrequency(AKeyIndex: integer): double;
+begin
+  Result := FEthalonFreq * Power(2, AKeyIndex / FTonesPerOctave);
+end;
+
+
+procedure TfrmMain.ChangeKey(AKeyIndex: integer);
+begin
+  if InRange(AKeyIndex, 0, FTonesPerOctave - 1) then begin
+    FSoundInfo.Frequency := CalcFrequency(AKeyIndex);
+  end;
+end;
+
+
+procedure TfrmMain.edTonesPerOctaveExit(Sender: TObject);
+begin
+  FTonesPerOctave := edTonesPerOctave.Value;
+  pbSoundKeys.Refresh;
 end;
 
 
@@ -139,6 +219,9 @@ var
   genClass: TWaveGeneratorClass;
 begin
   inherited;
+  FSoundInfo := TSoundInfo.Create;
+  FSoundInfo.Mute := true;
+
   for genClass in WaveGenerators do
     cbGeneratorType.Items.Add(genClass.GetCaption);
   cbGeneratorType.ItemIndex := 0;
@@ -148,17 +231,77 @@ end;
 procedure TfrmMain.FormDestroy(Sender: TObject);
 begin
   FPlaySoundThread.Free;
+  FSoundInfo.Free;
+  inherited;
+end;
+
+
+procedure TfrmMain.pbSoundKeysMouseDown(
+  Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  keyIdx: integer;
+begin
+  keyIdx := Trunc(X * FTonesPerOctave / pbSoundKeys.ClientWidth);
+  StartPlayKey(keyIdx);
+end;
+
+
+procedure TfrmMain.pbSoundKeysMouseMove(
+  Sender: TObject; Shift: TShiftState; X, Y: Integer);
+var
+  keyIdx: integer;
+begin
+  keyIdx := Trunc(X * FTonesPerOctave / pbSoundKeys.ClientWidth);
+  ChangeKey(keyIdx);
+end;
+
+
+procedure TfrmMain.pbSoundKeysMouseUp(
+  Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  FSoundInfo.Mute := true;
+end;
+
+
+procedure TfrmMain.pbSoundKeysPaint(Sender: TObject);
+var
+  i: integer;
+  tonesPerOctave: integer;
+  keyWidth: double;
+  keyHeightInt: integer;
+  canv: TCanvas;
+begin
+  tonesPerOctave := Max(FTonesPerOctave, 1);
+  keyWidth := pbSoundKeys.ClientWidth / tonesPerOctave;
+  keyHeightInt := Round(pbSoundKeys.ClientHeight);
+
+  canv := pbSoundKeys.Canvas;
+  canv.Pen.Color := clBlack;
+  canv.Brush.Color := clWhite;
+  for i := 0 to tonesPerOctave - 1 do begin
+    canv.Rectangle(
+      Round(keyWidth * i), 0, Round(keyWidth * (i + 1)), keyHeightInt);
+  end;
+end;
+
+
+procedure TfrmMain.StartPlayKey(AKeyIndex: integer);
+begin
+  if InRange(AKeyIndex, 0, FTonesPerOctave - 1) then begin
+    FSoundInfo.Frequency := CalcFrequency(AKeyIndex);
+    FSoundInfo.Mute := false;
+  end;
 end;
 
 
 { TPlaySoundThread }
 
 constructor TPlaySoundThread.Create(
-  AWaveGeneratorClass: TWaveGeneratorClass; AOrigFreq: double;
+  AWaveGeneratorClass: TWaveGeneratorClass; ASoundInfo: TSoundInfo;
   AObertonCount: integer);
 begin
   FWaveGeneratorClass := AWaveGeneratorClass;
-  FOrigFreq := AOrigFreq;
+  FSoundInfo := ASoundInfo;
   FObertonCount := AObertonCount;
 
   inherited Create(false);
@@ -183,12 +326,19 @@ begin
       curPos := 0;
 
       gen :=
-        FWaveGeneratorClass.Create(SAMPLES_PER_SEC, FOrigFreq, FObertonCount);
+        FWaveGeneratorClass.Create(
+          SAMPLES_PER_SEC, FSoundInfo.Frequency, FObertonCount);
       try
         i := 0;
         while not Terminated do begin
+          while FSoundInfo.Mute do begin
+            if Terminated then
+              Exit;
+          end;
+
           bufInfo := waveOut.Buffers[i];
-          gen.Generate(bufInfo.Data, bufInfo.Length, FOrigFreq, level, curPos);
+          gen.Generate(
+            bufInfo.Data, bufInfo.Length, FSoundInfo.Frequency, level, curPos);
           waveOut.PlayBuffer(i);
           i := 1 - i;
         end;
