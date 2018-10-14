@@ -51,7 +51,7 @@ object frmMain: TfrmMain
     TabOrder = 1
     OnClick = btnStopClick
   end
-  object GroupBox1: TGroupBox
+  object gbSettings: TGroupBox
     Left = 8
     Top = 8
     Width = 329

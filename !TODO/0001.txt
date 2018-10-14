@@ -1,0 +1,10 @@
+[Requirements]
+1. Fix Knocks
+2. Hot keys
+3. Add black midi keys
+4. Clean tune
+5. Piphagor tune
+6. Several octaves
+6. Volume spinner
+7. Tracks
+8. Sound Graphs

@@ -3,7 +3,9 @@ program SoundGenerator;
 uses
   Vcl.Forms,
   UMain in 'UMain.pas' {frmMain},
-  UWaveUtil in 'UWaveUtil.pas';
+  UWaveUtil in 'UWaveUtil.pas',
+  UTonePlayer in 'UTonePlayer.pas',
+  UWaveGenerator in 'UWaveGenerator.pas';
 
 {$R *.res}
 
