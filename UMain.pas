@@ -52,6 +52,7 @@ type
     FEthalonFreq: double;
     FObertonCount: integer;
 
+    function GetKeyIndex(AX, AY: integer): integer;
     procedure CreateKeys;
     function SelectedWaveGenerator: TWaveGeneratorClass;
     procedure ApplySettings;
@@ -201,23 +202,35 @@ begin
 end;
 
 
+function TfrmMain.GetKeyIndex(AX, AY: integer): integer;
+var
+  keyWidth: double;
+begin
+  Result := Trunc(AX * FTonesPerOctave / pbSoundKeys.ClientWidth);
+  if
+    cbKeybordStyle.Checked and InRange(Result, 0, FKeyInfos.Count - 1) and
+    FKeyInfos[Result].IsBlack and (AY > pbSoundKeys.ClientHeight div 2)
+  then begin
+    keyWidth := pbSoundKeys.ClientWidth / FKeyInfos.Count;
+    if AX <= (keyWidth * (Result + 0.5))then
+      Dec(Result)
+    else
+      Inc(Result);
+  end;
+end;
+
+
 procedure TfrmMain.pbSoundKeysMouseDown(
   Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-var
-  keyIdx: integer;
 begin
-  keyIdx := Trunc(X * FTonesPerOctave / pbSoundKeys.ClientWidth);
-  StartPlayKey(keyIdx);
+  StartPlayKey(GetKeyIndex(X, Y));
 end;
 
 
 procedure TfrmMain.pbSoundKeysMouseMove(
   Sender: TObject; Shift: TShiftState; X, Y: Integer);
-var
-  keyIdx: integer;
 begin
-  keyIdx := Trunc(X * FTonesPerOctave / pbSoundKeys.ClientWidth);
-  ChangeKey(keyIdx);
+  ChangeKey(GetKeyIndex(X, Y));
 end;
 
 
