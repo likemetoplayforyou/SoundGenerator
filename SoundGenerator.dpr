@@ -1,7 +1,7 @@
 program SoundGenerator;
 
 uses
-  Vcl.Forms,
+  Forms,
   UMain in 'UMain.pas' {frmMain},
   UWaveUtil in 'UWaveUtil.pas',
   UTonePlayer in 'UTonePlayer.pas',
