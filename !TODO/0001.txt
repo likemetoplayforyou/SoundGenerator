@@ -1,7 +1,10 @@
 [Requirements]
 1. Fix Knocks
-2. Hot keys
-3. Add black midi keys
+  Little knocks stil heared. Try use critical sections.
+2. Add black midi keys
+3. Hot keys
+3.5. Key captions (+N)
+3.7. Silent Gamma
 4. Clean tune
 5. Piphagor tune
 6. Several octaves
