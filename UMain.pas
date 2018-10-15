@@ -45,13 +45,17 @@ type
     procedure pbSoundKeysMouseMove(
       Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure cbKeybordStyleClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     FKeyInfos: TList<TKeyInfo>;
+    FHotKeysMap: TDictionary<string, integer>;
     FTonePlayer: TTonePlayer;
     FTonesPerOctave: integer;
     FEthalonFreq: double;
     FObertonCount: integer;
 
+    procedure FillHotKeysMap;
     function GetKeyIndex(AX, AY: integer): integer;
     procedure CreateKeys;
     function SelectedWaveGenerator: TWaveGeneratorClass;
@@ -91,6 +95,7 @@ begin
   FTonePlayer.Configure(SelectedWaveGenerator, FEthalonFreq, FObertonCount);
 
   CreateKeys;
+  FillHotKeysMap;
 
   pbSoundKeys.Refresh;
 end;
@@ -133,6 +138,7 @@ end;
 
 procedure TfrmMain.cbKeybordStyleClick(Sender: TObject);
 begin
+  FillHotKeysMap;
   pbSoundKeys.Refresh;
 end;
 
@@ -178,12 +184,43 @@ begin
 end;
 
 
+procedure TfrmMain.FillHotKeysMap;
+const
+  HOT_KEY_PAIR_MAP: array [0..11] of array [boolean] of string = (
+    ('Q', '2'), ('W', '3'), ('E', '4'), ('R', '5'), ('T', '6'), ('Y', '7'),
+    ('U', '8'), ('I', '9'), ('O', '0'), ('P', '-'), ('[', '='), (']', ']')
+  );
+var
+  i: integer;
+  k: integer;
+  isBlack: boolean;
+begin
+  FHotKeysMap.Clear;
+
+  k := -1;
+  for i := 0 to FKeyInfos.Count - 1 do begin
+    isBlack := cbKeybordStyle.Checked and FKeyInfos[i].IsBlack;
+    if cbKeybordStyle.Checked then begin
+      if not isBlack then
+        Inc(k);
+    end
+    else
+      k := i;
+    if k > High(HOT_KEY_PAIR_MAP) then
+      Break;
+
+    FHotKeysMap.Add(HOT_KEY_PAIR_MAP[k, isBlack], i);
+  end;
+end;
+
+
 procedure TfrmMain.FormCreate(Sender: TObject);
 var
   genClass: TWaveGeneratorClass;
 begin
   inherited;
   FKeyInfos := TList<TKeyInfo>.Create;
+  FHotKeysMap := TDictionary<string, integer>.Create;
   FTonePlayer := TTonePlayer.Create;
 
   for genClass in WaveGenerators do
@@ -196,9 +233,37 @@ end;
 
 procedure TfrmMain.FormDestroy(Sender: TObject);
 begin
-  FKeyInfos.Free;
   FTonePlayer.Free;
+  FHotKeysMap.Free;
+  FKeyInfos.Free;
   inherited;
+end;
+
+
+procedure TfrmMain.FormKeyDown(
+  Sender: TObject; var Key: Word; Shift: TShiftState);
+var
+  sndKeyIdx: integer;
+begin
+  if ActiveControl is TCustomEdit then
+    Exit;
+
+  if FHotKeysMap.TryGetValue(Chr(Key and $7F), sndKeyIdx) then begin
+    if FTonePlayer.IsPlaying then
+      ChangeKey(sndKeyIdx)
+    else
+      StartPlayKey(sndKeyIdx);
+  end;
+end;
+
+
+procedure TfrmMain.FormKeyUp(
+  Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if ActiveControl is TCustomEdit then
+    Exit;
+
+  FTonePlayer.Stop;
 end;
 
 
