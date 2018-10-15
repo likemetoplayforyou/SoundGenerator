@@ -89,6 +89,8 @@ begin
   FTonePlayer.Stop;
   FTonePlayer.Configure(SelectedWaveGenerator, FEthalonFreq, FObertonCount);
 
+  CreateKeys;
+
   pbSoundKeys.Refresh;
 end;
 
@@ -246,17 +248,19 @@ begin
   canv.Brush.Color := clWhite;
 
   if cbKeybordStyle.Checked then begin
-    for i := 0 to tonesPerOctave - 1 do begin
+    for i := 0 to FKeyInfos.Count - 1 do begin
+      if FKeyInfos[i].IsBlack then
+        Continue;
+
       leftShift := 0;
-      whiteKeyWidth := 0;
       if i = 0 then begin
-        if tonesPerOctave <= 2 then
+        if FKeyInfos.Count <= 2 then
           whiteKeyWidth := keyWidth
         else
           whiteKeyWidth := keyWidth + keyWidth / 2;
       end
-      else if i = tonesPerOctave - 1 then begin
-        if tonesPerOctave mod 2 = 0 then begin
+      else if i = FKeyInfos.Count - 1 then begin
+        if FKeyInfos.Count mod 2 = 0 then begin
           whiteKeyWidth := keyWidth;
         end
         else begin
@@ -264,8 +268,6 @@ begin
           whiteKeyWidth := keyWidth + keyWidth / 2;
         end;
       end
-      else if i mod 2 = 1 then
-        Continue
       else begin
         whiteKeyWidth := keyWidth * 2;
         leftShift := keyWidth / 2;
@@ -274,8 +276,8 @@ begin
       canv.Rectangle(Round(x), 0, Round(x + whiteKeyWidth), keyHeightInt);
     end;
     canv.Brush.Color := clBlack;
-    for i := 0 to tonesPerOctave - 2 do begin
-      if i mod 2 = 1 then
+    for i := 0 to FKeyInfos.Count - 1 do begin
+      if FKeyInfos[i].IsBlack then
         canv.Rectangle(
           Round(keyWidth * i), 0,
           Round(keyWidth * (i + 1)), keyHeightInt div 2);
