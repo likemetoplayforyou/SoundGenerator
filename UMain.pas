@@ -3,13 +3,18 @@ unit UMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Samples.Spin,
-  Vcl.ExtCtrls,
+  Windows, Messages, SysUtils, Variants, Generics.Collections,
+  Classes, Graphics,
+  Controls, Forms, Dialogs, StdCtrls, Spin,
+  ExtCtrls,
   UTonePlayer, UWaveGenerator;
 
 type
+  TKeyInfo = record
+    IsBlack: boolean;
+  end;
+
+
   TfrmMain = class(TForm)
     btnStart: TButton;
     btnStop: TButton;
@@ -25,7 +30,7 @@ type
     lblObertonCount: TLabel;
     edObertonCount: TSpinEdit;
     btnApplySettings: TButton;
-    cbKeyBordStyle: TCheckBox;
+    cbKeybordStyle: TCheckBox;
     procedure FormDestroy(Sender: TObject);
     procedure btnStartClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
@@ -39,12 +44,15 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure pbSoundKeysMouseMove(
       Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure cbKeybordStyleClick(Sender: TObject);
   private
+    FKeyInfos: TList<TKeyInfo>;
     FTonePlayer: TTonePlayer;
     FTonesPerOctave: integer;
     FEthalonFreq: double;
     FObertonCount: integer;
 
+    procedure CreateKeys;
     function SelectedWaveGenerator: TWaveGeneratorClass;
     procedure ApplySettings;
     function CalcFrequency(AKeyIndex: integer): double;
@@ -62,7 +70,7 @@ implementation
 {$R *.dfm}
 
 uses
-  mmsystem, Generics.Collections, Math,
+  mmsystem, Math,
   UWaveUtil;
 
 const
@@ -120,6 +128,12 @@ begin
 end;
 
 
+procedure TfrmMain.cbKeybordStyleClick(Sender: TObject);
+begin
+  pbSoundKeys.Refresh;
+end;
+
+
 procedure TfrmMain.ChangeKey(AKeyIndex: integer);
 var
   keyFreq: double;
@@ -141,6 +155,19 @@ begin
 end;
 
 
+procedure TfrmMain.CreateKeys;
+var
+  i: integer;
+  keyInfo: TKeyInfo;
+begin
+  FKeyInfos.Clear;
+  for i := 0 to FTonesPerOctave - 1 do begin
+    keyInfo.IsBlack := (i < FTonesPerOctave - 1) and (i mod 2 = 1);
+    FKeyInfos.Add(keyInfo);
+  end;
+end;
+
+
 procedure TfrmMain.edTonesPerOctaveExit(Sender: TObject);
 begin
   FTonesPerOctave := edTonesPerOctave.Value;
@@ -153,16 +180,20 @@ var
   genClass: TWaveGeneratorClass;
 begin
   inherited;
+  FKeyInfos := TList<TKeyInfo>.Create;
   FTonePlayer := TTonePlayer.Create;
 
   for genClass in WaveGenerators do
     cbGeneratorType.Items.Add(genClass.GetCaption);
   cbGeneratorType.ItemIndex := 0;
+
+  ApplySettings;
 end;
 
 
 procedure TfrmMain.FormDestroy(Sender: TObject);
 begin
+  FKeyInfos.Free;
   FTonePlayer.Free;
   inherited;
 end;
@@ -201,7 +232,10 @@ var
   tonesPerOctave: integer;
   keyWidth: double;
   keyHeightInt: integer;
+  whiteKeyWidth: double;
   canv: TCanvas;
+  x: double;
+  leftShift: double;
 begin
   tonesPerOctave := Max(FTonesPerOctave, 1);
   keyWidth := pbSoundKeys.ClientWidth / tonesPerOctave;
@@ -210,9 +244,48 @@ begin
   canv := pbSoundKeys.Canvas;
   canv.Pen.Color := clBlack;
   canv.Brush.Color := clWhite;
-  for i := 0 to tonesPerOctave - 1 do begin
-    canv.Rectangle(
-      Round(keyWidth * i), 0, Round(keyWidth * (i + 1)), keyHeightInt);
+
+  if cbKeybordStyle.Checked then begin
+    for i := 0 to tonesPerOctave - 1 do begin
+      leftShift := 0;
+      whiteKeyWidth := 0;
+      if i = 0 then begin
+        if tonesPerOctave <= 2 then
+          whiteKeyWidth := keyWidth
+        else
+          whiteKeyWidth := keyWidth + keyWidth / 2;
+      end
+      else if i = tonesPerOctave - 1 then begin
+        if tonesPerOctave mod 2 = 0 then begin
+          whiteKeyWidth := keyWidth;
+        end
+        else begin
+          leftShift := keyWidth / 2;
+          whiteKeyWidth := keyWidth + keyWidth / 2;
+        end;
+      end
+      else if i mod 2 = 1 then
+        Continue
+      else begin
+        whiteKeyWidth := keyWidth * 2;
+        leftShift := keyWidth / 2;
+      end;
+      x := keyWidth * i - leftShift;
+      canv.Rectangle(Round(x), 0, Round(x + whiteKeyWidth), keyHeightInt);
+    end;
+    canv.Brush.Color := clBlack;
+    for i := 0 to tonesPerOctave - 2 do begin
+      if i mod 2 = 1 then
+        canv.Rectangle(
+          Round(keyWidth * i), 0,
+          Round(keyWidth * (i + 1)), keyHeightInt div 2);
+    end;
+  end
+  else begin
+    for i := 0 to tonesPerOctave - 1 do begin
+      canv.Rectangle(
+        Round(keyWidth * i), 0, Round(keyWidth * (i + 1)), keyHeightInt);
+    end;
   end;
 end;
 

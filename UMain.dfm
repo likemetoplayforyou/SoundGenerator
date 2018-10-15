@@ -132,13 +132,14 @@ object frmMain: TfrmMain
       TabOrder = 4
       OnClick = btnApplySettingsClick
     end
-    object cbKeyBordStyle: TCheckBox
+    object cbKeybordStyle: TCheckBox
       Left = 16
       Top = 134
       Width = 97
       Height = 17
       Caption = 'Keybord style'
       TabOrder = 5
+      OnClick = cbKeybordStyleClick
     end
   end
 end
