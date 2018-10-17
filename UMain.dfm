@@ -126,9 +126,6 @@ object frmMain: TfrmMain
     Height = 150
     Align = alBottom
     TabOrder = 1
-    ExplicitLeft = 0
-    ExplicitTop = 176
-    ExplicitWidth = 552
     object pbSoundKeys: TPaintBox
       Left = 1
       Top = 25
@@ -150,6 +147,7 @@ object frmMain: TfrmMain
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 0
+      OnResize = pnKeyCaptionsResize
     end
   end
 end

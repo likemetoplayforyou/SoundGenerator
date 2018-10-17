@@ -58,6 +58,7 @@ type
     procedure cbKeybordStyleClick(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure pnKeyCaptionsResize(Sender: TObject);
   private
     FKeyInfos: TList<TKeyInfo>;
     FKeyGUIList: TList<TKeyGUI>;
@@ -67,6 +68,7 @@ type
     FEthalonFreq: double;
     FObertonCount: integer;
 
+    procedure PlaceKeys;
     procedure FillHotKeysMap;
     function GetKeyIndex(AX, AY: integer): integer;
     procedure CreateKeys;
@@ -107,7 +109,6 @@ begin
   FTonePlayer.Configure(SelectedWaveGenerator, FEthalonFreq, FObertonCount);
 
   CreateKeys;
-  FillHotKeysMap;
 
   pbSoundKeys.Refresh;
 end;
@@ -150,7 +151,7 @@ end;
 
 procedure TfrmMain.cbKeybordStyleClick(Sender: TObject);
 begin
-  FillHotKeysMap;
+  CreateKeys;
   pbSoundKeys.Refresh;
 end;
 
@@ -180,8 +181,6 @@ procedure TfrmMain.CreateKeys;
 var
   i: integer;
   keyInfo: TKeyInfo;
-  keyGUI: TKeyGUI;
-  keyWidth: double;
 begin
   FKeyInfos.Clear;
   for i := 0 to FTonesPerOctave - 1 do begin
@@ -189,15 +188,14 @@ begin
     FKeyInfos.Add(keyInfo);
   end;
 
-  keyWidth := pnKeyCaptions.ClientWidth / FTonesPerOctave;
   FKeyGUIList.Clear;
   for i := 0 to FKeyInfos.Count - 1 do begin
-    keyGUI := TKeyGUI.Create(pnKeyCaptions, i);
-    keyGUI.Lbl.Left := Round(i * keyWidth);
-    keyGUI.Lbl.Width := Round(keyWidth);
-    keyGUI.Lbl.Top := 5;
-    // START FROM THIS
+    FKeyGUIList.Add(TKeyGUI.Create(pnKeyCaptions, i));
   end;
+
+  PlaceKeys;
+
+  FillHotKeysMap;
 end;
 
 
@@ -393,6 +391,33 @@ begin
         Round(keyWidth * i), 0, Round(keyWidth * (i + 1)), keyHeightInt);
     end;
   end;
+end;
+
+
+procedure TfrmMain.PlaceKeys;
+var
+  lblTop: integer;
+  lblWidth: double;
+  i: integer;
+  lbl: TLabel;
+begin
+  if FKeyGUIList.Count <= 0 then
+    Exit;
+
+  lblTop := (pnKeyCaptions.ClientHeight - FKeyGUIList[0].Lbl.Height) div 2;
+  lblWidth := pnKeyCaptions.ClientWidth / FKeyGUIList.Count;
+  for i := 0 to FKeyGUIList.Count - 1 do begin
+    lbl := FKeyGUIList[i].Lbl;
+    lbl.Left := Round(i * lblWidth);
+    lbl.Width := Round(lblWidth);
+    lbl.Top := lblTop;
+  end;
+end;
+
+
+procedure TfrmMain.pnKeyCaptionsResize(Sender: TObject);
+begin
+  PlaceKeys;
 end;
 
 
