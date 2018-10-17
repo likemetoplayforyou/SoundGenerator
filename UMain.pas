@@ -64,6 +64,7 @@ type
     FKeyGUIList: TList<TKeyGUI>;
     FHotKeysMap: TDictionary<string, integer>;
     FTonePlayer: TTonePlayer;
+    FIsPlayingByHotKey: boolean;
     FTonesPerOctave: integer;
     FEthalonFreq: double;
     FObertonCount: integer;
@@ -273,6 +274,7 @@ begin
     Exit;
 
   if FHotKeysMap.TryGetValue(Chr(Key and $7F), sndKeyIdx) then begin
+    FIsPlayingByHotKey := true;
     if FTonePlayer.IsPlaying then
       ChangeKey(sndKeyIdx)
     else
@@ -288,6 +290,8 @@ begin
     Exit;
 
   FTonePlayer.Stop;
+
+  FIsPlayingByHotKey := false;
 end;
 
 
@@ -319,7 +323,8 @@ end;
 procedure TfrmMain.pbSoundKeysMouseMove(
   Sender: TObject; Shift: TShiftState; X, Y: Integer);
 begin
-  ChangeKey(GetKeyIndex(X, Y));
+  if not FIsPlayingByHotKey then
+    ChangeKey(GetKeyIndex(X, Y));
 end;
 
 
