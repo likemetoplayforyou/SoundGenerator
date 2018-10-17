@@ -20,11 +20,10 @@ type
 
     function IsPlaying: boolean;
 
-    procedure Configure(
-      AWaveGeneratorClass: TWaveGeneratorClass; AFrequency: double;
-      AObertonCount: integer);
-
-    property Frequency: double read FFrequency;
+    property WaveGeneratorClass: TWaveGeneratorClass
+      read FWaveGeneratorClass write FWaveGeneratorClass;
+    property Frequency: double read FFrequency write FFrequency;
+    property ObertonCount: integer read FObertonCount write FObertonCount;
   end;
 
 
@@ -50,16 +49,6 @@ type
 
 
 { TTonePlayer }
-
-procedure TTonePlayer.Configure(
-  AWaveGeneratorClass: TWaveGeneratorClass; AFrequency: double;
-  AObertonCount: integer);
-begin
-  FWaveGeneratorClass := AWaveGeneratorClass;
-  FFrequency := AFrequency;
-  FObertonCount := AObertonCount;
-end;
-
 
 function TTonePlayer.IsPlaying: boolean;
 begin

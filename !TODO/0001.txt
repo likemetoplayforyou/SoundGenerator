@@ -4,6 +4,7 @@
 2. Add black midi keys
 3. Hot keys
 3.5. Key captions (+N)
+3.6. Add TKeyPlayer class which holds TTonePlayer, Timer...
 3.7. Fix Silent Gamma
 4. Clean tune
 5. Piphagor tune

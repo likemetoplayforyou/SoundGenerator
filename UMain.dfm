@@ -20,7 +20,7 @@ object frmMain: TfrmMain
   TextHeight = 13
   object Label1: TLabel
     Left = 410
-    Top = 117
+    Top = 133
     Width = 63
     Height = 13
     Alignment = taCenter
@@ -170,6 +170,15 @@ object frmMain: TfrmMain
     Caption = 'Stop Rec'
     TabOrder = 3
     OnClick = btnStopRecClick
+  end
+  object btnPlayFile: TButton
+    Left = 410
+    Top = 78
+    Width = 75
+    Height = 25
+    Caption = 'Play file'
+    TabOrder = 4
+    OnClick = btnPlayFileClick
   end
   object tmRec: TTimer
     Enabled = False

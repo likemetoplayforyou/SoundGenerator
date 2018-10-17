@@ -7,7 +7,7 @@ uses
   Classes, Graphics,
   Controls, Forms, Dialogs, StdCtrls, Spin,
   ExtCtrls,
-  UTonePlayer, UWaveGenerator;
+  UTonePlayer, UWaveGenerator, UKeyPlayer, UFilePlayer;
 
 type
   TKeyInfo = record
@@ -45,6 +45,7 @@ type
     btnStartRec: TButton;
     tmRec: TTimer;
     btnStopRec: TButton;
+    btnPlayFile: TButton;
     procedure FormDestroy(Sender: TObject);
     procedure btnStartClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
@@ -65,18 +66,18 @@ type
     procedure tmRecTimer(Sender: TObject);
     procedure btnStartRecClick(Sender: TObject);
     procedure btnStopRecClick(Sender: TObject);
+    procedure btnPlayFileClick(Sender: TObject);
   private
     FKeyInfos: TList<TKeyInfo>;
     FKeyGUIList: TList<TKeyGUI>;
     FHotKeysMap: TDictionary<string, integer>;
-    FTonePlayer: TTonePlayer;
+    FKeyPlayer: TKeyPlayer;
+    FFilePlayer: TFilePlayer;
     FIsPlayingByHotKey: boolean;
-    FPlayingKey: integer;
     FTonesPerOctave: integer;
-    FEthalonFreq: double;
-    FObertonCount: integer;
 
     FRecordFile: TStringList;
+    FPlayFile: TStringList;
 
     procedure PlaceKeys;
     procedure FillHotKeysMap;
@@ -84,10 +85,6 @@ type
     procedure CreateKeys;
     function SelectedWaveGenerator: TWaveGeneratorClass;
     procedure ApplySettings;
-    function CalcFrequency(AKeyIndex: integer): double;
-    procedure StartPlayKey(AKeyIndex: integer);
-    procedure ChangeKey(AKeyIndex: integer);
-    procedure StopPlay;
   public
     { Public declarations }
   end;
@@ -114,11 +111,12 @@ begin
     Exit;
 
   FTonesPerOctave := edTonesPerOctave.Value;
-  FEthalonFreq := StrToFloat(edOrigFreq.Text, FORMAT_SETTINGS);
-  FObertonCount := edObertonCount.Value;
 
-  StopPlay;
-  FTonePlayer.Configure(SelectedWaveGenerator, FEthalonFreq, FObertonCount);
+  FKeyPlayer.Stop;
+  FKeyPlayer.EthalonFreq := StrToFloat(edOrigFreq.Text, FORMAT_SETTINGS);
+  FKeyPlayer.KeysPerOctave := FTonesPerOctave;
+  FKeyPlayer.TonePlayer.WaveGeneratorClass := SelectedWaveGenerator;
+  FKeyPlayer.TonePlayer.ObertonCount :=  edObertonCount.Value;
 
   CreateKeys;
 
@@ -129,6 +127,12 @@ end;
 procedure TfrmMain.btnApplySettingsClick(Sender: TObject);
 begin
   ApplySettings;
+end;
+
+
+procedure TfrmMain.btnPlayFileClick(Sender: TObject);
+begin
+  FFilePlayer.PlayFile('RecordFile.txt');
 end;
 
 
@@ -169,38 +173,10 @@ begin
 end;
 
 
-function TfrmMain.CalcFrequency(AKeyIndex: integer): double;
-begin
-  Result := FEthalonFreq * Power(2, AKeyIndex / FTonesPerOctave);
-end;
-
-
 procedure TfrmMain.cbKeybordStyleClick(Sender: TObject);
 begin
   CreateKeys;
   pbSoundKeys.Refresh;
-end;
-
-
-procedure TfrmMain.ChangeKey(AKeyIndex: integer);
-var
-  keyFreq: double;
-begin
-  if
-    InRange(AKeyIndex, 0, FTonesPerOctave - 1) and FTonePlayer.IsPlaying
-  then begin
-    keyFreq := CalcFrequency(AKeyIndex);
-    if
-      not FTonePlayer.IsPlaying or (keyFreq <> FTonePlayer.Frequency)
-    then begin
-      StopPlay;
-      FPlayingKey := AKeyIndex;
-      FTonePlayer.Configure(SelectedWaveGenerator, keyFreq, FObertonCount);
-      FTonePlayer.Start;
-    end;
-  end
-  else
-    StopPlay;
 end;
 
 
@@ -271,9 +247,10 @@ begin
   FKeyInfos := TList<TKeyInfo>.Create;
   FKeyGUIList := TObjectList<TKeyGUI>.Create(true);
   FHotKeysMap := TDictionary<string, integer>.Create;
-  FTonePlayer := TTonePlayer.Create;
+  FKeyPlayer := TKeyPlayer.Create;
+  FFilePlayer := TFilePlayer.Create(FKeyPlayer);
   FRecordFile := TStringList.Create;
-  FPlayingKey := -1;
+  FPlayFile := TStringList.Create;
 
   for genClass in WaveGenerators do
     cbGeneratorType.Items.Add(genClass.GetCaption);
@@ -285,8 +262,10 @@ end;
 
 procedure TfrmMain.FormDestroy(Sender: TObject);
 begin
+  FPlayFile.Free;
   FRecordFile.Free;
-  FTonePlayer.Free;
+  FFilePlayer.Free;
+  FKeyPlayer.Free;
   FHotKeysMap.Free;
   FKeyGUIList.Free;
   FKeyInfos.Free;
@@ -304,10 +283,7 @@ begin
 
   if FHotKeysMap.TryGetValue(Chr(Key and $7F), sndKeyIdx) then begin
     FIsPlayingByHotKey := true;
-    if FTonePlayer.IsPlaying then
-      ChangeKey(sndKeyIdx)
-    else
-      StartPlayKey(sndKeyIdx);
+    FKeyPlayer.PlayKey(sndKeyIdx);
   end;
 end;
 
@@ -318,7 +294,7 @@ begin
   if ActiveControl is TCustomEdit then
     Exit;
 
-  StopPlay;
+  FKeyPlayer.Stop;
 
   FIsPlayingByHotKey := false;
 end;
@@ -345,7 +321,7 @@ end;
 procedure TfrmMain.pbSoundKeysMouseDown(
   Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  StartPlayKey(GetKeyIndex(X, Y));
+  FKeyPlayer.PlayKey(GetKeyIndex(X, Y));
 end;
 
 
@@ -353,14 +329,14 @@ procedure TfrmMain.pbSoundKeysMouseMove(
   Sender: TObject; Shift: TShiftState; X, Y: Integer);
 begin
   if not FIsPlayingByHotKey then
-    ChangeKey(GetKeyIndex(X, Y));
+    FKeyPlayer.PlayKey(GetKeyIndex(X, Y));
 end;
 
 
 procedure TfrmMain.pbSoundKeysMouseUp(
   Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  StopPlay;
+  FKeyPlayer.Stop;
 end;
 
 
@@ -461,24 +437,6 @@ begin
 end;
 
 
-procedure TfrmMain.StartPlayKey(AKeyIndex: integer);
-begin
-  if InRange(AKeyIndex, 0, FTonesPerOctave - 1) then begin
-    FPlayingKey := AKeyIndex;
-    FTonePlayer.Configure(
-      SelectedWaveGenerator, CalcFrequency(AKeyIndex), FObertonCount);
-    FTonePlayer.Start;
-  end;
-end;
-
-
-procedure TfrmMain.StopPlay;
-begin
-  FTonePlayer.Stop;
-  FPlayingKey := -1;
-end;
-
-
 procedure TfrmMain.tmRecTimer(Sender: TObject);
 var
   keyIdxStr: string;
@@ -486,8 +444,8 @@ begin
   if FRecordFile.Count <= 0 then
     Exit;
 
-  if FPlayingKey >= 0 then
-    keyIdxStr := IntToStr(FPlayingKey)
+  if FKeyPlayer.PlayingKey >= 0 then
+    keyIdxStr := IntToStr(FKeyPlayer.PlayingKey)
   else
     keyIdxStr := 'X';
 
