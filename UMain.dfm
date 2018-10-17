@@ -18,40 +18,14 @@ object frmMain: TfrmMain
   OnKeyUp = FormKeyUp
   PixelsPerInch = 96
   TextHeight = 13
-  object pbSoundKeys: TPaintBox
-    Left = 8
-    Top = 176
-    Width = 529
-    Height = 105
-    OnMouseDown = pbSoundKeysMouseDown
-    OnMouseMove = pbSoundKeysMouseMove
-    OnMouseUp = pbSoundKeysMouseUp
-    OnPaint = pbSoundKeysPaint
-  end
   object Label1: TLabel
-    Left = 506
-    Top = 144
-    Width = 31
+    Left = 410
+    Top = 117
+    Width = 63
     Height = 13
+    Alignment = taCenter
+    AutoSize = False
     Caption = 'Label1'
-  end
-  object btnStart: TButton
-    Left = 16
-    Top = 293
-    Width = 75
-    Height = 25
-    Caption = 'Start'
-    TabOrder = 0
-    OnClick = btnStartClick
-  end
-  object btnStop: TButton
-    Left = 104
-    Top = 293
-    Width = 75
-    Height = 25
-    Caption = 'Stop'
-    TabOrder = 1
-    OnClick = btnStopClick
   end
   object gbSettings: TGroupBox
     Left = 8
@@ -59,7 +33,7 @@ object frmMain: TfrmMain
     Width = 329
     Height = 162
     Caption = ' Settings '
-    TabOrder = 2
+    TabOrder = 0
     object lblTonesPerOctave: TLabel
       Left = 16
       Top = 27
@@ -142,6 +116,40 @@ object frmMain: TfrmMain
       Caption = 'Keybord style'
       TabOrder = 5
       OnClick = cbKeybordStyleClick
+    end
+  end
+  object pnKeyBoard: TPanel
+    AlignWithMargins = True
+    Left = 3
+    Top = 173
+    Width = 546
+    Height = 150
+    Align = alBottom
+    TabOrder = 1
+    ExplicitLeft = 0
+    ExplicitTop = 176
+    ExplicitWidth = 552
+    object pbSoundKeys: TPaintBox
+      Left = 1
+      Top = 25
+      Width = 544
+      Height = 124
+      Align = alClient
+      OnMouseDown = pbSoundKeysMouseDown
+      OnMouseMove = pbSoundKeysMouseMove
+      OnMouseUp = pbSoundKeysMouseUp
+      OnPaint = pbSoundKeysPaint
+      ExplicitLeft = 0
+      ExplicitTop = 31
+    end
+    object pnKeyCaptions: TPanel
+      Left = 1
+      Top = 1
+      Width = 544
+      Height = 24
+      Align = alTop
+      BevelOuter = bvNone
+      TabOrder = 0
     end
   end
 end

@@ -15,10 +15,18 @@ type
   end;
 
 
+  TKeyGUI = class(TObject)
+  private
+    FLbl: TLabel;
+  public
+    constructor Create(AContainer: TWinControl; AIndex: integer);
+    destructor Destroy; override;
+
+    property Lbl: TLabel read FLbl;
+  end;
+
+
   TfrmMain = class(TForm)
-    btnStart: TButton;
-    btnStop: TButton;
-    pbSoundKeys: TPaintBox;
     Label1: TLabel;
     gbSettings: TGroupBox;
     lblTonesPerOctave: TLabel;
@@ -31,6 +39,9 @@ type
     edObertonCount: TSpinEdit;
     btnApplySettings: TButton;
     cbKeybordStyle: TCheckBox;
+    pnKeyBoard: TPanel;
+    pbSoundKeys: TPaintBox;
+    pnKeyCaptions: TPanel;
     procedure FormDestroy(Sender: TObject);
     procedure btnStartClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
@@ -49,6 +60,7 @@ type
     procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     FKeyInfos: TList<TKeyInfo>;
+    FKeyGUIList: TList<TKeyGUI>;
     FHotKeysMap: TDictionary<string, integer>;
     FTonePlayer: TTonePlayer;
     FTonesPerOctave: integer;
@@ -168,11 +180,23 @@ procedure TfrmMain.CreateKeys;
 var
   i: integer;
   keyInfo: TKeyInfo;
+  keyGUI: TKeyGUI;
+  keyWidth: double;
 begin
   FKeyInfos.Clear;
   for i := 0 to FTonesPerOctave - 1 do begin
     keyInfo.IsBlack := (i < FTonesPerOctave - 1) and (i mod 2 = 1);
     FKeyInfos.Add(keyInfo);
+  end;
+
+  keyWidth := pnKeyCaptions.ClientWidth / FTonesPerOctave;
+  FKeyGUIList.Clear;
+  for i := 0 to FKeyInfos.Count - 1 do begin
+    keyGUI := TKeyGUI.Create(pnKeyCaptions, i);
+    keyGUI.Lbl.Left := Round(i * keyWidth);
+    keyGUI.Lbl.Width := Round(keyWidth);
+    keyGUI.Lbl.Top := 5;
+    // START FROM THIS
   end;
 end;
 
@@ -220,6 +244,7 @@ var
 begin
   inherited;
   FKeyInfos := TList<TKeyInfo>.Create;
+  FKeyGUIList := TObjectList<TKeyGUI>.Create(true);
   FHotKeysMap := TDictionary<string, integer>.Create;
   FTonePlayer := TTonePlayer.Create;
 
@@ -235,6 +260,7 @@ procedure TfrmMain.FormDestroy(Sender: TObject);
 begin
   FTonePlayer.Free;
   FHotKeysMap.Free;
+  FKeyGUIList.Free;
   FKeyInfos.Free;
   inherited;
 end;
@@ -383,6 +409,26 @@ begin
       SelectedWaveGenerator, CalcFrequency(AKeyIndex), FObertonCount);
     FTonePlayer.Start;
   end;
+end;
+
+
+{ TKeyGUI }
+
+constructor TKeyGUI.Create(AContainer: TWinControl; AIndex: integer);
+begin
+  inherited Create;
+  FLbl := TLabel.Create(AContainer);
+  FLbl.Parent := AContainer;
+  FLbl.AutoSize := false;
+  FLbl.Alignment := taCenter;
+  FLbl.Caption := '+' + IntToStr(AIndex);
+end;
+
+
+destructor TKeyGUI.Destroy;
+begin
+  FLbl.Free;
+  inherited;
 end;
 
 
