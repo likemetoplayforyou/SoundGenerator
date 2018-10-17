@@ -5,7 +5,8 @@ uses
   UMain in 'UMain.pas' {frmMain},
   UWaveUtil in 'UWaveUtil.pas',
   UTonePlayer in 'UTonePlayer.pas',
-  UWaveGenerator in 'UWaveGenerator.pas';
+  UWaveGenerator in 'UWaveGenerator.pas',
+  UUtils in 'Utils\UUtils.pas';
 
 {$R *.res}
 
