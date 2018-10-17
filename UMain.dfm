@@ -3,7 +3,7 @@ object frmMain: TfrmMain
   Top = 0
   Caption = 'frmMain'
   ClientHeight = 326
-  ClientWidth = 552
+  ClientWidth = 616
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -122,14 +122,15 @@ object frmMain: TfrmMain
     AlignWithMargins = True
     Left = 3
     Top = 173
-    Width = 546
+    Width = 610
     Height = 150
     Align = alBottom
     TabOrder = 1
+    ExplicitWidth = 546
     object pbSoundKeys: TPaintBox
       Left = 1
       Top = 25
-      Width = 544
+      Width = 608
       Height = 124
       Align = alClient
       OnMouseDown = pbSoundKeysMouseDown
@@ -138,16 +139,43 @@ object frmMain: TfrmMain
       OnPaint = pbSoundKeysPaint
       ExplicitLeft = 0
       ExplicitTop = 31
+      ExplicitWidth = 544
     end
     object pnKeyCaptions: TPanel
       Left = 1
       Top = 1
-      Width = 544
+      Width = 608
       Height = 24
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 0
       OnResize = pnKeyCaptionsResize
+      ExplicitWidth = 544
     end
+  end
+  object btnStartRec: TButton
+    Left = 410
+    Top = 30
+    Width = 75
+    Height = 25
+    Caption = 'Start Rec'
+    TabOrder = 2
+    OnClick = btnStartRecClick
+  end
+  object btnStopRec: TButton
+    Left = 505
+    Top = 30
+    Width = 75
+    Height = 25
+    Caption = 'Stop Rec'
+    TabOrder = 3
+    OnClick = btnStopRecClick
+  end
+  object tmRec: TTimer
+    Enabled = False
+    Interval = 125
+    OnTimer = tmRecTimer
+    Left = 360
+    Top = 24
   end
 end

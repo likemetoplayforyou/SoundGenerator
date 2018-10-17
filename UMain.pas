@@ -42,6 +42,9 @@ type
     pnKeyBoard: TPanel;
     pbSoundKeys: TPaintBox;
     pnKeyCaptions: TPanel;
+    btnStartRec: TButton;
+    tmRec: TTimer;
+    btnStopRec: TButton;
     procedure FormDestroy(Sender: TObject);
     procedure btnStartClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
@@ -59,15 +62,21 @@ type
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure pnKeyCaptionsResize(Sender: TObject);
+    procedure tmRecTimer(Sender: TObject);
+    procedure btnStartRecClick(Sender: TObject);
+    procedure btnStopRecClick(Sender: TObject);
   private
     FKeyInfos: TList<TKeyInfo>;
     FKeyGUIList: TList<TKeyGUI>;
     FHotKeysMap: TDictionary<string, integer>;
     FTonePlayer: TTonePlayer;
     FIsPlayingByHotKey: boolean;
+    FPlayingKey: integer;
     FTonesPerOctave: integer;
     FEthalonFreq: double;
     FObertonCount: integer;
+
+    FRecordFile: TStringList;
 
     procedure PlaceKeys;
     procedure FillHotKeysMap;
@@ -78,6 +87,7 @@ type
     function CalcFrequency(AKeyIndex: integer): double;
     procedure StartPlayKey(AKeyIndex: integer);
     procedure ChangeKey(AKeyIndex: integer);
+    procedure StopPlay;
   public
     { Public declarations }
   end;
@@ -91,6 +101,7 @@ implementation
 
 uses
   mmsystem, Math,
+  UUtils,
   UWaveUtil;
 
 const
@@ -106,7 +117,7 @@ begin
   FEthalonFreq := StrToFloat(edOrigFreq.Text, FORMAT_SETTINGS);
   FObertonCount := edObertonCount.Value;
 
-  FTonePlayer.Stop;
+  StopPlay;
   FTonePlayer.Configure(SelectedWaveGenerator, FEthalonFreq, FObertonCount);
 
   CreateKeys;
@@ -137,10 +148,24 @@ begin
 end;
 
 
+procedure TfrmMain.btnStartRecClick(Sender: TObject);
+begin
+  FRecordFile.Add('');
+  tmRec.Enabled := true;
+end;
+
+
 procedure TfrmMain.btnStopClick(Sender: TObject);
 begin
 //  FPlaySoundThread.Terminate;
 //  FIsPlaying := false;
+end;
+
+
+procedure TfrmMain.btnStopRecClick(Sender: TObject);
+begin
+  tmRec.Enabled := false;
+  FRecordFile.SaveToFile('RecordFile.txt');
 end;
 
 
@@ -168,13 +193,14 @@ begin
     if
       not FTonePlayer.IsPlaying or (keyFreq <> FTonePlayer.Frequency)
     then begin
-      FTonePlayer.Stop;
+      StopPlay;
+      FPlayingKey := AKeyIndex;
       FTonePlayer.Configure(SelectedWaveGenerator, keyFreq, FObertonCount);
       FTonePlayer.Start;
     end;
   end
   else
-    FTonePlayer.Stop;
+    StopPlay;
 end;
 
 
@@ -246,6 +272,8 @@ begin
   FKeyGUIList := TObjectList<TKeyGUI>.Create(true);
   FHotKeysMap := TDictionary<string, integer>.Create;
   FTonePlayer := TTonePlayer.Create;
+  FRecordFile := TStringList.Create;
+  FPlayingKey := -1;
 
   for genClass in WaveGenerators do
     cbGeneratorType.Items.Add(genClass.GetCaption);
@@ -257,6 +285,7 @@ end;
 
 procedure TfrmMain.FormDestroy(Sender: TObject);
 begin
+  FRecordFile.Free;
   FTonePlayer.Free;
   FHotKeysMap.Free;
   FKeyGUIList.Free;
@@ -289,7 +318,7 @@ begin
   if ActiveControl is TCustomEdit then
     Exit;
 
-  FTonePlayer.Stop;
+  StopPlay;
 
   FIsPlayingByHotKey := false;
 end;
@@ -331,7 +360,7 @@ end;
 procedure TfrmMain.pbSoundKeysMouseUp(
   Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  FTonePlayer.Stop;
+  StopPlay;
 end;
 
 
@@ -435,10 +464,35 @@ end;
 procedure TfrmMain.StartPlayKey(AKeyIndex: integer);
 begin
   if InRange(AKeyIndex, 0, FTonesPerOctave - 1) then begin
+    FPlayingKey := AKeyIndex;
     FTonePlayer.Configure(
       SelectedWaveGenerator, CalcFrequency(AKeyIndex), FObertonCount);
     FTonePlayer.Start;
   end;
+end;
+
+
+procedure TfrmMain.StopPlay;
+begin
+  FTonePlayer.Stop;
+  FPlayingKey := -1;
+end;
+
+
+procedure TfrmMain.tmRecTimer(Sender: TObject);
+var
+  keyIdxStr: string;
+begin
+  if FRecordFile.Count <= 0 then
+    Exit;
+
+  if FPlayingKey >= 0 then
+    keyIdxStr := IntToStr(FPlayingKey)
+  else
+    keyIdxStr := 'X';
+
+  FRecordFile[FRecordFile.Count - 1] :=
+    JoinStrings(FRecordFile[FRecordFile.Count - 1], keyIdxStr, '-');
 end;
 
 
